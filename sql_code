@@ -1,0 +1,82 @@
+--1.create tables in sql (order , person , returns table)
+
+CREATE TABLE Person (
+    PersonID INT PRIMARY KEY,
+    PersonName VARCHAR(100)
+);
+
+CREATE TABLE OrderTable (
+    OrderID INT PRIMARY KEY,
+    PersonID INT,
+    OrderDate DATE,
+    TotalSales DECIMAL(10, 2),
+    Profit DECIMAL(10, 2),
+    City VARCHAR(100),
+    Segment VARCHAR(50),
+    Discount DECIMAL(5, 2),
+    FOREIGN KEY (PersonID) REFERENCES Person(PersonID)
+);
+
+CREATE TABLE Returns (
+    OrderID INT PRIMARY KEY,
+    ReturnDate DATE,
+    Reason VARCHAR(100)
+);
+
+
+
+--2.create new table using join tables based on keys
+CREATE TABLE CombinedData AS
+SELECT o.OrderID, p.PersonName, o.OrderDate, o.TotalSales, o.Profit, o.City, o.Segment, o.Discount
+FROM OrderTable o
+JOIN Person p ON o.PersonID = p.PersonID;
+
+
+--3.city wise sales , profit
+SELECT City, SUM(TotalSales) AS TotalSales, SUM(Profit) AS TotalProfit
+FROM OrderTable
+GROUP BY City;
+
+--4.segment wise max sales , discounts, profit
+SELECT Segment, MAX(TotalSales) AS MaxSales, MAX(Discount) AS MaxDiscount, MAX(Profit) AS MaxProfit
+FROM OrderTable
+GROUP BY Segment;
+
+--5.city wise top3 sales
+SELECT City, OrderID, TotalSales
+FROM (
+    SELECT City, OrderID, TotalSales,
+           ROW_NUMBER() OVER(PARTITION BY City ORDER BY TotalSales DESC) AS rn
+    FROM OrderTable
+) ranked
+WHERE rn <= 3;
+
+
+
+--6.create store procedure for all your above 6 tasks
+DELIMITER //
+CREATE PROCEDURE SuperStoreAnalysis()
+BEGIN
+    -- Task 4: City-Wise Sales and Profit
+    SELECT City, SUM(TotalSales) AS TotalSales, SUM(Profit) AS TotalProfit
+    FROM OrderTable
+    GROUP BY City;
+
+    -- Task 5: Segment-Wise Max Sales, Discounts, Profit
+    SELECT Segment, MAX(TotalSales) AS MaxSales, MAX(Discount) AS MaxDiscount, MAX(Profit) AS MaxProfit
+    FROM OrderTable
+    GROUP BY Segment;
+
+    -- Task 6: City-Wise Top 3 Sales
+    SELECT City, OrderID, TotalSales
+    FROM (
+        SELECT City, OrderID, TotalSales,
+               ROW_NUMBER() OVER(PARTITION BY City ORDER BY TotalSales DESC) AS rn
+        FROM OrderTable
+    ) ranked
+    WHERE rn <= 3;
+END;
+//
+DELIMITER ;
+
+
